@@ -99,7 +99,10 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 <div class="screen hidden" id="screen-scan">
   <div class="scan-header">
     <span class="scan-title">Scanner un article</span>
-    <button class="btn-logout" onclick="logout()">Déconnexion</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="btn-torch" onclick="toggleTorch()" title="Allumer la lampe" style="display:none;background:rgba(255,255,255,0.1);border:none;border-radius:20px;padding:8px 12px;color:white;font-size:18px;cursor:pointer;">🔦</button>
+      <button class="btn-logout" onclick="logout()">Déconnexion</button>
+    </div>
   </div>
   <div id="video-container">
     <video id="video" playsinline muted></video>
@@ -298,6 +301,9 @@ function showResultError(ean) {
   showScreen('screen-result');
 }
 
+var torchOn = false;
+var videoStream = null;
+
 function startScanner() {
   showScreen('screen-scan');
   if (isScanning) return;
@@ -308,21 +314,70 @@ function startScanner() {
       ZXing.BarcodeFormat.EAN_8,
       ZXing.BarcodeFormat.CODE_128
     ]);
-    codeReader = new ZXing.BrowserMultiFormatReader(hints);
-    codeReader.listVideoInputDevices().then(function(devices) {
-      var device = null;
-      for (var i = 0; i < devices.length; i++) {
-        if (/back|rear|environment/i.test(devices[i].label)) { device = devices[i]; break; }
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    codeReader = new ZXing.BrowserMultiFormatReader(hints, 300);
+
+    // Contraintes caméra haute résolution avec autofocus continu
+    var constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
+        focusMode: { ideal: 'continuous' },
+        zoom: { ideal: 1 }
       }
-      if (!device && devices.length > 0) device = devices[devices.length - 1];
-      var deviceId = device ? device.deviceId : undefined;
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+      videoStream = stream;
+      var videoEl = document.getElementById('video');
+      videoEl.srcObject = stream;
+      videoEl.play();
+
+      // Appliquer autofocus et exposition automatique via les capabilities
+      var track = stream.getVideoTracks()[0];
+      if (track && track.applyConstraints) {
+        track.applyConstraints({
+          advanced: [
+            { focusMode: 'continuous' },
+            { exposureMode: 'continuous' }
+          ]
+        }).catch(function(){});
+      }
+
+      // Afficher/masquer le bouton torche selon dispo
+      if (track && track.getCapabilities) {
+        var caps = track.getCapabilities();
+        if (caps && caps.torch) {
+          document.getElementById('btn-torch').style.display = 'flex';
+        }
+      }
+
       isScanning = true;
-      codeReader.decodeFromVideoDevice(deviceId, 'video', function(result, err) {
+      codeReader.decodeFromStream(stream, videoEl, function(result, err) {
         if (result && isScanning) {
           isScanning = false;
-          if (navigator.vibrate) navigator.vibrate(60);
+          if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
           searchEAN(result.getText());
         }
+      });
+    }).catch(function(err) {
+      console.error('Camera error:', err);
+      // Fallback sans contraintes avancées
+      codeReader.listVideoInputDevices().then(function(devices) {
+        var device = null;
+        for (var i = 0; i < devices.length; i++) {
+          if (/back|rear|environment/i.test(devices[i].label)) { device = devices[i]; break; }
+        }
+        if (!device && devices.length > 0) device = devices[devices.length - 1];
+        isScanning = true;
+        codeReader.decodeFromVideoDevice(device ? device.deviceId : undefined, 'video', function(result, err) {
+          if (result && isScanning) {
+            isScanning = false;
+            if (navigator.vibrate) navigator.vibrate(60);
+            searchEAN(result.getText());
+          }
+        });
       });
     });
   } catch(e) {
@@ -330,8 +385,25 @@ function startScanner() {
   }
 }
 
+function toggleTorch() {
+  if (!videoStream) return;
+  var track = videoStream.getVideoTracks()[0];
+  if (!track) return;
+  torchOn = !torchOn;
+  track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(function(){});
+  var btn = document.getElementById('btn-torch');
+  btn.style.background = torchOn ? 'rgba(255,220,50,0.3)' : 'rgba(255,255,255,0.1)';
+  btn.title = torchOn ? 'Éteindre la lampe' : 'Allumer la lampe';
+}
+
 function stopScanner() {
   if (codeReader) { try { codeReader.reset(); } catch(e) {} }
+  if (videoStream) {
+    videoStream.getTracks().forEach(function(t) { t.stop(); });
+    videoStream = null;
+  }
+  torchOn = false;
+  document.getElementById('btn-torch').style.display = 'none';
   isScanning = false;
 }
 
