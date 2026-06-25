@@ -45,13 +45,16 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 /* Conteneur vidéo — html5-qrcode injecte dedans */
 #scan-viewport { width:100%; height:100%; position:relative; background:#000; overflow:hidden; }
 
-/* Neutraliser les styles injectés par html5-qrcode */
-#qr-reader { width:100% !important; height:100% !important; border:none !important; }
-#qr-reader video { width:100% !important; height:100% !important; object-fit:cover !important; }
-#qr-reader img { display:none !important; }
-#qr-reader__scan_region { width:100% !important; height:100% !important; border:none !important; background:transparent !important; }
-#qr-reader__scan_region > img { display:none !important; }
+/* Neutraliser TOUS les éléments injectés par html5-qrcode */
+#qr-reader { width:100% !important; height:100% !important; border:none !important; background:transparent !important; padding:0 !important; }
+#qr-reader video { position:absolute !important; inset:0 !important; width:100% !important; height:100% !important; object-fit:cover !important; z-index:1 !important; }
+#qr-reader__scan_region { display:none !important; }
 #qr-reader__dashboard { display:none !important; }
+#qr-reader__header_message { display:none !important; }
+#qr-reader img { display:none !important; }
+#qr-reader canvas { display:none !important; }
+#qr-reader div { border:none !important; box-shadow:none !important; background:transparent !important; }
+[id^="qr-shaded-region"] { display:none !important; }
 
 /* Surcouche visuelle */
 .scan-overlay { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; pointer-events:none; }
@@ -421,7 +424,24 @@ function startHtml5Scanner() {
       if (isScanning) onEANDetected(decodedText);
     },
     function() {} // erreurs silencieuses
-  ).catch(function(err) {
+  ).then(function() {
+    // Supprimer tous les éléments visuels injectés par html5-qrcode
+    setTimeout(function() {
+      var qr = document.getElementById('qr-reader');
+      if (!qr) return;
+      // Masquer tous les divs sauf la vidéo
+      Array.from(qr.querySelectorAll('div, img, canvas, button')).forEach(function(el) {
+        if (el.tagName !== 'VIDEO') {
+          el.style.cssText = 'display:none!important;border:none!important;box-shadow:none!important;';
+        }
+      });
+      // S'assurer que la vidéo est bien en plein écran
+      var video = qr.querySelector('video');
+      if (video) {
+        video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;';
+      }
+    }, 500);
+  }).catch(function(err) {
     console.error('html5-qrcode error:', err);
   });
 }
