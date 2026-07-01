@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Scanner Articles</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -33,47 +32,84 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 .btn-primary:active { opacity:0.85; transform:scale(0.98); }
 .login-error { font-size:13px; color:var(--red); text-align:center; min-height:18px; }
 
-/* SCAN */
-#screen-scan { padding:0; justify-content:flex-start; }
-.scan-header { position:absolute; top:0; left:0; right:0; z-index:20; padding:16px 20px; padding-top:max(16px,env(safe-area-inset-top)); display:flex; align-items:center; justify-content:space-between; background:linear-gradient(to bottom,rgba(15,17,23,0.92),transparent); }
-.scan-title { font-size:17px; font-weight:600; }
-.scan-engine-badge { font-size:10px; padding:3px 8px; border-radius:10px; margin-left:8px; vertical-align:middle; }
-.badge-native { background:rgba(61,214,140,0.2); color:var(--accent2); }
-.badge-js { background:rgba(79,142,247,0.2); color:var(--accent); }
-.btn-logout { background:rgba(255,255,255,0.1); border:none; border-radius:20px; padding:8px 14px; color:var(--text2); font-size:13px; cursor:pointer; }
+/* ÉCRAN SCAN — iPhone natif */
+#screen-scan { gap:0; padding:0; justify-content:space-between; background:var(--bg); }
 
-/* Conteneur vidéo — html5-qrcode injecte dedans */
-#scan-viewport { width:100%; height:100%; position:relative; background:#000; overflow:hidden; }
+.scan-top {
+  width:100%;
+  padding:max(56px,env(safe-area-inset-top)) 24px 0;
+  display:flex; flex-direction:column; align-items:center;
+  gap:8px;
+}
+.scan-top-header { width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.scan-title { font-size:18px; font-weight:700; }
+.btn-logout { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:8px 14px; color:var(--text2); font-size:13px; cursor:pointer; }
 
-/* Neutraliser TOUS les éléments injectés par html5-qrcode */
-#qr-reader { width:100% !important; height:100% !important; border:none !important; background:transparent !important; padding:0 !important; }
-#qr-reader video { position:absolute !important; inset:0 !important; width:100% !important; height:100% !important; object-fit:cover !important; z-index:1 !important; }
-#qr-reader__scan_region { display:none !important; }
-#qr-reader__dashboard { display:none !important; }
-#qr-reader__header_message { display:none !important; }
-#qr-reader img { display:none !important; }
-#qr-reader canvas { display:none !important; }
-#qr-reader div { border:none !important; box-shadow:none !important; background:transparent !important; }
-[id^="qr-shaded-region"] { display:none !important; }
+/* Grande zone centrale avec instruction */
+.scan-center {
+  flex:1;
+  width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:28px; padding:24px;
+}
 
-/* Surcouche visuelle */
-.scan-overlay { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; pointer-events:none; }
-.scan-frame { width:260px; height:160px; position:relative; }
-.scan-frame::before,.scan-frame::after,.scan-frame span::before,.scan-frame span::after { content:''; position:absolute; width:28px; height:28px; border-color:white; border-style:solid; border-width:0; }
-.scan-frame::before { top:0; left:0; border-top-width:3px; border-left-width:3px; border-radius:4px 0 0 0; }
-.scan-frame::after  { top:0; right:0; border-top-width:3px; border-right-width:3px; border-radius:0 4px 0 0; }
-.scan-frame span::before { bottom:0; left:0; border-bottom-width:3px; border-left-width:3px; border-radius:0 0 0 4px; }
-.scan-frame span::after  { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 4px 0; }
-.scan-line { position:absolute; left:6px; right:6px; height:2px; background:linear-gradient(to right,transparent,var(--accent),transparent); animation:scanline 1.8s ease-in-out infinite; }
-@keyframes scanline { 0%{top:6px;opacity:1} 88%{top:calc(100% - 6px);opacity:1} 100%{top:calc(100% - 6px);opacity:0} }
-.scan-hint { color:rgba(255,255,255,0.8); font-size:14px; text-align:center; text-shadow:0 1px 6px rgba(0,0,0,0.8); }
+.scan-illustration {
+  width:220px; height:140px;
+  border:2px dashed rgba(255,255,255,0.15);
+  border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  background:rgba(255,255,255,0.02);
+}
+.scan-illustration::before,.scan-illustration::after,
+.scan-illustration span::before,.scan-illustration span::after {
+  content:''; position:absolute;
+  width:24px; height:24px;
+  border-color:var(--accent); border-style:solid; border-width:0;
+}
+.scan-illustration::before { top:-1px; left:-1px; border-top-width:3px; border-left-width:3px; border-radius:4px 0 0 0; }
+.scan-illustration::after  { top:-1px; right:-1px; border-top-width:3px; border-right-width:3px; border-radius:0 4px 0 0; }
+.scan-illustration span::before { bottom:-1px; left:-1px; border-bottom-width:3px; border-left-width:3px; border-radius:0 0 0 4px; }
+.scan-illustration span::after  { bottom:-1px; right:-1px; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 4px 0; }
+.scan-illustration-icon { font-size:48px; opacity:0.4; }
 
-.scan-bottom { position:absolute; bottom:0; left:0; right:0; z-index:10; padding:16px 20px; padding-bottom:max(16px,env(safe-area-inset-bottom)); background:linear-gradient(to top,rgba(15,17,23,0.95),transparent); display:flex; gap:10px; align-items:center; }
-.input-manual { flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:13px 16px; color:white; font-size:15px; outline:none; }
-.input-manual::placeholder { color:rgba(255,255,255,0.4); }
-.btn-manual { background:var(--accent); border:none; border-radius:12px; padding:13px 18px; color:white; font-size:15px; font-weight:600; cursor:pointer; }
-.btn-torch { background:rgba(255,255,255,0.1); border:none; border-radius:12px; padding:13px; font-size:18px; cursor:pointer; display:none; transition:background 0.2s; }
-.btn-torch.on { background:rgba(255,220,50,0.3); }
+.scan-instruction {
+  text-align:center; display:flex; flex-direction:column; gap:6px;
+}
+.scan-instruction-title { font-size:17px; font-weight:600; }
+.scan-instruction-sub { font-size:14px; color:var(--text2); line-height:1.5; }
+
+/* Bouton scan principal — grand et tactile */
+.btn-scan-main {
+  width:100%;
+  background:var(--accent);
+  border:none; border-radius:18px;
+  padding:20px;
+  color:white; font-size:18px; font-weight:700;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  transition:opacity 0.15s, transform 0.1s;
+  box-shadow: 0 8px 24px rgba(79,142,247,0.35);
+}
+.btn-scan-main:active { opacity:0.88; transform:scale(0.98); }
+.btn-scan-icon { font-size:24px; }
+
+/* Input file caché */
+#camera-input { display:none; }
+
+/* Zone bas */
+.scan-bottom {
+  width:100%;
+  padding:16px 24px;
+  padding-bottom:max(24px,env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:10px;
+}
+
+.manual-row { display:flex; gap:10px; }
+.input-manual { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 16px; color:var(--text); font-size:15px; outline:none; }
+.input-manual::placeholder { color:var(--text2); }
+.input-manual:focus { border-color:var(--accent); }
+.btn-manual { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 18px; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; }
 
 /* LOADING */
 #screen-loading { gap:16px; background:var(--bg); }
@@ -82,7 +118,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 .loader-text { font-size:14px; color:var(--text2); }
 
 /* RESULT */
-#screen-result { gap:20px; background:var(--bg); justify-content:flex-start; padding-top:60px; overflow-y:auto; }
+#screen-result { gap:20px; background:var(--bg); justify-content:flex-start; padding-top:max(56px,env(safe-area-inset-top)); overflow-y:auto; }
 .result-header { width:100%; max-width:420px; display:flex; align-items:center; gap:12px; }
 .btn-back { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 16px; color:var(--text2); font-size:14px; cursor:pointer; flex-shrink:0; }
 .result-ean { font-size:12px; color:var(--text2); font-family:monospace; letter-spacing:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -98,8 +134,14 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 .no-location { background:rgba(247,201,79,0.08); border:1px solid rgba(247,201,79,0.2); border-radius:14px; padding:14px 16px; font-size:14px; color:var(--yellow); display:flex; align-items:center; gap:10px; }
 .error-card { width:100%; max-width:420px; background:rgba(247,95,95,0.08); border:1px solid rgba(247,95,95,0.2); border-radius:20px; padding:28px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
 .error-title { font-size:18px; font-weight:700; color:var(--red); }
-.btn-scan-again { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; color:var(--text); font-size:16px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
-.btn-scan-again:active { background:var(--surface2); }
+.btn-scan-again {
+  width:100%; max-width:420px;
+  background:var(--accent); border:none; border-radius:14px;
+  padding:18px; color:white; font-size:16px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 6px 20px rgba(79,142,247,0.3);
+}
+.btn-scan-again:active { opacity:0.88; }
 </style>
 </head>
 <body>
@@ -120,22 +162,33 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 
 <!-- SCAN -->
 <div class="screen hidden" id="screen-scan">
-  <div class="scan-header">
-    <div>
-      <span class="scan-title">Scanner un article</span>
-      <span class="scan-engine-badge" id="engine-badge"></span>
+  <div class="scan-top">
+    <div class="scan-top-header">
+      <span class="scan-title">Scanner Articles</span>
+      <button class="btn-logout" onclick="logout()">Déconnexion</button>
     </div>
-    <button class="btn-logout" onclick="logout()">Déconnexion</button>
   </div>
-  <div id="scan-viewport">
-    <div id="qr-reader"></div>
-    <div class="scan-overlay">
-      <div class="scan-frame"><span></span><div class="scan-line"></div></div>
-      <div class="scan-hint">Centrez le code-barres dans le cadre</div>
+
+  <div class="scan-center">
+    <div class="scan-illustration">
+      <span></span>
+      <div class="scan-illustration-icon">|||||||</div>
     </div>
-    <div class="scan-bottom">
+    <div class="scan-instruction">
+      <div class="scan-instruction-title">Scannez un code-barres</div>
+      <div class="scan-instruction-sub">Appuyez sur le bouton ci-dessous.<br>Visez le code-barres et iOS le détecte automatiquement.</div>
+    </div>
+    <!-- Déclencheur appareil photo natif iOS -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment">
+    <button class="btn-scan-main" onclick="triggerCamera()">
+      <span class="btn-scan-icon">📷</span>
+      Ouvrir l'appareil photo
+    </button>
+  </div>
+
+  <div class="scan-bottom">
+    <div class="manual-row">
       <input class="input-manual" type="number" id="manual-ean" placeholder="Saisie manuelle EAN…">
-      <button class="btn-torch" id="btn-torch" onclick="toggleTorch()">🔦</button>
       <button class="btn-manual" onclick="searchManual()">OK</button>
     </div>
   </div>
@@ -150,7 +203,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 <!-- RESULT -->
 <div class="screen hidden" id="screen-result">
   <div class="result-header">
-    <button class="btn-back" onclick="backToScan()">← Retour</button>
+    <button class="btn-back" onclick="backToScan()">← Scanner</button>
     <span class="result-ean" id="result-ean-display"></span>
   </div>
   <div id="result-content"></div>
@@ -158,45 +211,24 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
 </div>
 
 <script>
-// ═══════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════
-var SHEET_ID  = '1jtxgWw8488lQWtHeYuReVv2ZlHh4MQXpTvJFZrq6egM';
-var PASSWORD  = 'magasin2024';
+var SHEET_ID   = '1jtxgWw8488lQWtHeYuReVv2ZlHh4MQXpTvJFZrq6egM';
+var PASSWORD   = 'magasin2024';
 var SESSION_KEY = 'scanner_auth';
 
-// ═══════════════════════════════════════
-// ÉTAT
-// ═══════════════════════════════════════
-var dbArticles    = null;
+var dbArticles     = null;
 var dbEmplacements = null;
-var isScanning    = false;
-var scanLocked    = false;
 
-// BarcodeDetector (natif)
-var nativeDetector = null;
-var nativeRafId    = null;
-var videoStream    = null;
-var torchOn        = false;
-
-// html5-qrcode (fallback)
-var html5Scanner   = null;
-
-// ═══════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════
+// ── NAVIGATION ──────────────────────────
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(function(s) { s.classList.add('hidden'); });
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
 }
 
-// ═══════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════
+// ── AUTH ────────────────────────────────
 function checkPin() {
   var val = document.getElementById('pin-input').value.trim();
   if (val === PASSWORD) {
-    sessionStorage.setItem(SESSION_KEY, '1');
+    sessionStorage.setItem(SESSION_KEY,'1');
     document.getElementById('login-error').textContent = '';
     startApp();
   } else {
@@ -205,358 +237,181 @@ function checkPin() {
     document.getElementById('pin-input').focus();
   }
 }
-document.getElementById('pin-input').addEventListener('keydown', function(e) { if (e.key==='Enter') checkPin(); });
+document.getElementById('pin-input').addEventListener('keydown', function(e){ if(e.key==='Enter') checkPin(); });
 
 function logout() {
   sessionStorage.removeItem(SESSION_KEY);
-  stopScanner();
   showScreen('screen-login');
 }
 
-// ═══════════════════════════════════════
-// DONNÉES GOOGLE SHEETS
-// ═══════════════════════════════════════
+// ── DONNÉES GOOGLE SHEETS ───────────────
 function parseCSVLine(line) {
   var result=[], cur='', inQ=false;
-  for (var i=0; i<line.length; i++) {
+  for (var i=0;i<line.length;i++) {
     var c=line[i];
-    if (c==='"') { inQ=!inQ; }
-    else if (c===',' && !inQ) { result.push(cur); cur=''; }
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur);cur='';}
     else cur+=c;
   }
   result.push(cur);
   return result;
 }
-
 function parseCSV(text) {
-  var lines = text.trim().split('\n');
-  var headers = parseCSVLine(lines[0]).map(function(h){ return h.trim().replace(/^"|"$/g,''); });
-  return lines.slice(1).map(function(line) {
-    var vals = parseCSVLine(line);
-    var obj = {};
+  var lines=text.trim().split('\n');
+  var headers=parseCSVLine(lines[0]).map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  return lines.slice(1).map(function(line){
+    var vals=parseCSVLine(line), obj={};
     headers.forEach(function(h,i){ obj[h]=(vals[i]||'').trim().replace(/^"|"$/g,''); });
     return obj;
   });
 }
-
 function fetchSheet(name) {
-  var url = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(name);
-  return fetch(url).then(function(r){ if(!r.ok) throw new Error('err'); return r.text(); }).then(parseCSV);
+  var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(name);
+  return fetch(url).then(function(r){if(!r.ok)throw new Error();return r.text();}).then(parseCSV);
 }
-
 function loadData() {
   if (dbArticles && dbEmplacements) return Promise.resolve();
-  return Promise.all([fetchSheet('Articles'), fetchSheet('Emplacements')]).then(function(res) {
-    dbArticles = {};
-    res[0].forEach(function(r) {
-      var ean = (r['EAN']||'').toString().trim();
-      if (ean) dbArticles[ean] = r;
+  return Promise.all([fetchSheet('Articles'),fetchSheet('Emplacements')]).then(function(res){
+    dbArticles={};
+    res[0].forEach(function(r){
+      var ean=(r['EAN']||'').toString().trim();
+      if(ean) dbArticles[ean]=r;
     });
-    dbEmplacements = {};
-    res[1].forEach(function(r) {
-      var code = (r['Code article']||'').toString().trim();
-      if (code) dbEmplacements[code] = r;
+    dbEmplacements={};
+    res[1].forEach(function(r){
+      var code=(r['Code article']||'').toString().trim();
+      if(code) dbEmplacements[code]=r;
     });
   });
 }
 
-// ═══════════════════════════════════════
-// RECHERCHE & AFFICHAGE
-// ═══════════════════════════════════════
+// ── APPAREIL PHOTO NATIF iOS ────────────
+function triggerCamera() {
+  var input = document.getElementById('camera-input');
+  input.value = ''; // reset pour permettre re-scan même EAN
+  input.click();
+}
+
+document.getElementById('camera-input').addEventListener('change', function(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  showScreen('screen-loading');
+  document.getElementById('loader-text').textContent = 'Lecture du code-barres…';
+
+  // Essayer BarcodeDetector sur l'image capturée (disponible sur iOS 17+)
+  if (typeof BarcodeDetector !== 'undefined') {
+    var img = new Image();
+    img.onload = function() {
+      var detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','upc_a','upc_e'] });
+      detector.detect(img).then(function(barcodes) {
+        URL.revokeObjectURL(img.src);
+        if (barcodes.length > 0) {
+          onEANDetected(barcodes[0].rawValue);
+        } else {
+          // Aucun code détecté dans l'image
+          showNoBarcode();
+        }
+      }).catch(function() { URL.revokeObjectURL(img.src); showNoBarcode(); });
+    };
+    img.onerror = function() { URL.revokeObjectURL(img.src); showNoBarcode(); };
+    img.src = URL.createObjectURL(file);
+  } else {
+    // iOS < 17 : afficher message pour réessayer en se rapprochant
+    showNoBarcode();
+  }
+});
+
+function showNoBarcode() {
+  document.getElementById('result-ean-display').textContent = '';
+  document.getElementById('result-content').innerHTML =
+    '<div class="error-card">' +
+      '<div style="font-size:40px">📷</div>' +
+      '<div class="error-title">Code-barres non détecté</div>' +
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6">Rapprochez-vous du code-barres,<br>assurez-vous qu\'il est bien éclairé<br>et réessayez.</div>' +
+    '</div>';
+  showScreen('screen-result');
+}
+
+// ── RECHERCHE ───────────────────────────
 function onEANDetected(ean) {
-  if (scanLocked) return;
-  scanLocked = true;
   if (navigator.vibrate) navigator.vibrate([50,30,50]);
-  stopScanner();
   showScreen('screen-loading');
   document.getElementById('loader-text').textContent = 'Recherche en cours…';
-  loadData().then(function() {
+  loadData().then(function(){
     showResult(ean.toString().trim(), dbArticles[ean.toString().trim()]);
-  }).catch(function() { showResultError(); });
+  }).catch(showResultError);
 }
 
 function showResult(ean, article) {
   document.getElementById('result-ean-display').textContent = 'EAN : '+ean;
-  var container = document.getElementById('result-content');
+  var c = document.getElementById('result-content');
   if (!article) {
-    container.innerHTML =
-      '<div class="error-card">'+
-        '<div style="font-size:40px">🔍</div>'+
-        '<div class="error-title">Article introuvable</div>'+
-        '<div style="font-size:13px;color:var(--text2)">EAN : '+ean+'</div>'+
-        '<div style="font-size:13px;color:var(--text2)">Ce code-barres ne figure pas dans la base articles.</div>'+
+    c.innerHTML =
+      '<div class="error-card">' +
+        '<div style="font-size:40px">🔍</div>' +
+        '<div class="error-title">Article introuvable</div>' +
+        '<div style="font-size:13px;color:var(--text2)">EAN : '+ean+'</div>' +
+        '<div style="font-size:13px;color:var(--text2)">Ce code-barres ne figure pas dans la base articles.</div>' +
       '</div>';
-    showScreen('screen-result');
-    return;
+    showScreen('screen-result'); return;
   }
-  var code    = (article['Code article']||'').trim();
-  var libelle = (article['Libellé article']||article['Libelle article']||'').trim();
-  var emp     = dbEmplacements[code];
-  var locHTML = '';
-  if (emp) {
+  var code=(article['Code article']||'').trim();
+  var lib=(article['Libellé article']||article['Libelle article']||'').trim();
+  var emp=dbEmplacements[code];
+  var locHTML='';
+  if(emp){
     var al=(emp['Allée']||emp['Allee']||'—').trim();
     var tr=(emp['Travée']||emp['Travee']||'—').trim();
     var nv=(emp['Niveau']||'—').trim();
     var rg=(emp['Rang']||'—').trim();
-    locHTML =
-      '<div class="location-grid">'+
-        '<div class="loc-item"><div class="loc-label">Allée</div><div class="loc-value">'+al+'</div></div>'+
-        '<div class="loc-item"><div class="loc-label">Travée</div><div class="loc-value">'+tr+'</div></div>'+
-        '<div class="loc-item"><div class="loc-label">Niveau</div><div class="loc-value">'+nv+'</div></div>'+
-        '<div class="loc-item"><div class="loc-label">Rang</div><div class="loc-value">'+rg+'</div></div>'+
-      '</div>';
-  } else {
-    locHTML = '<div class="no-location"><span>⚠️</span><span>Emplacement non défini pour cet article.</span></div>';
-  }
-  container.innerHTML =
-    '<div class="card">'+
-      '<div class="card-label">Code article</div>'+
-      '<div class="card-code">'+code+'</div>'+
-      '<div class="card-name">'+libelle+'</div>'+
-      '<div class="divider"></div>'+
-      '<div class="card-label" style="margin-bottom:12px">Emplacement</div>'+
-      locHTML+
+    locHTML='<div class="location-grid">'+
+      '<div class="loc-item"><div class="loc-label">Allée</div><div class="loc-value">'+al+'</div></div>'+
+      '<div class="loc-item"><div class="loc-label">Travée</div><div class="loc-value">'+tr+'</div></div>'+
+      '<div class="loc-item"><div class="loc-label">Niveau</div><div class="loc-value">'+nv+'</div></div>'+
+      '<div class="loc-item"><div class="loc-label">Rang</div><div class="loc-value">'+rg+'</div></div>'+
     '</div>';
+  } else {
+    locHTML='<div class="no-location"><span>⚠️</span><span>Emplacement non défini pour cet article.</span></div>';
+  }
+  c.innerHTML='<div class="card">'+
+    '<div class="card-label">Code article</div>'+
+    '<div class="card-code">'+code+'</div>'+
+    '<div class="card-name">'+lib+'</div>'+
+    '<div class="divider"></div>'+
+    '<div class="card-label" style="margin-bottom:12px">Emplacement</div>'+
+    locHTML+'</div>';
   showScreen('screen-result');
 }
 
 function showResultError() {
-  document.getElementById('result-ean-display').textContent = '';
-  document.getElementById('result-content').innerHTML =
-    '<div class="error-card">'+
-      '<div style="font-size:40px">⚠️</div>'+
-      '<div class="error-title">Erreur de connexion</div>'+
-      '<div style="font-size:13px;color:var(--text2)">Vérifiez votre connexion internet.</div>'+
-    '</div>';
+  document.getElementById('result-ean-display').textContent='';
+  document.getElementById('result-content').innerHTML=
+    '<div class="error-card"><div style="font-size:40px">⚠️</div>'+
+    '<div class="error-title">Erreur de connexion</div>'+
+    '<div style="font-size:13px;color:var(--text2)">Vérifiez votre connexion internet.</div></div>';
   showScreen('screen-result');
 }
 
-// ═══════════════════════════════════════
-// SCANNER — MOTEUR NATIF (BarcodeDetector)
-// ═══════════════════════════════════════
-function startNativeScanner() {
-  var formats = ['ean_13','ean_8','code_128','upc_a','upc_e'];
-  nativeDetector = new BarcodeDetector({ formats: formats });
-
-  var constraints = {
-    video: {
-      facingMode: { ideal: 'environment' },
-      width:  { ideal: 1920 },
-      height: { ideal: 1080 }
-    }
-  };
-
-  navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-    videoStream = stream;
-    var videoEl = document.getElementById('video-native');
-    if (!videoEl) {
-      videoEl = document.createElement('video');
-      videoEl.id = 'video-native';
-      videoEl.setAttribute('playsinline','');
-      videoEl.setAttribute('muted','');
-      videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-      document.getElementById('scan-viewport').insertBefore(videoEl, document.getElementById('scan-viewport').firstChild);
-    }
-    videoEl.srcObject = stream;
-    videoEl.play();
-
-    // Autofocus continu
-    var track = stream.getVideoTracks()[0];
-    if (track && track.applyConstraints) {
-      track.applyConstraints({ advanced: [{ focusMode:'continuous' },{ exposureMode:'continuous' }] }).catch(function(){});
-    }
-    // Torche
-    if (track && track.getCapabilities) {
-      var caps = track.getCapabilities();
-      if (caps && caps.torch) document.getElementById('btn-torch').style.display = 'block';
-    }
-
-    // Boucle de détection rapide
-    isScanning = true;
-    setBadge('native');
-
-    function detectLoop() {
-      if (!isScanning) return;
-      if (videoEl.readyState >= 2) {
-        nativeDetector.detect(videoEl).then(function(barcodes) {
-          if (barcodes.length > 0 && isScanning) {
-            onEANDetected(barcodes[0].rawValue);
-          }
-        }).catch(function(){});
-      }
-      nativeRafId = setTimeout(detectLoop, 100); // 10 détections/seconde
-    }
-    detectLoop();
-
-  }).catch(function(err) {
-    console.warn('BarcodeDetector camera error, fallback html5-qrcode:', err);
-    startHtml5Scanner();
-  });
-}
-
-// ═══════════════════════════════════════
-// SCANNER — FALLBACK html5-qrcode
-// ═══════════════════════════════════════
-function startHtml5Scanner() {
-  setBadge('js');
-  isScanning = true;
-
-  html5Scanner = new Html5Qrcode('qr-reader', { verbose: false });
-
-  var config = {
-    fps: 15,
-    qrbox: { width: 260, height: 160 },
-    aspectRatio: window.innerHeight / window.innerWidth,
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.CODE_128,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E
-    ],
-    experimentalFeatures: { useBarCodeDetectorIfSupported: false }
-  };
-
-  html5Scanner.start(
-    { facingMode: 'environment' },
-    config,
-    function(decodedText) {
-      if (isScanning) onEANDetected(decodedText);
-    },
-    function() {} // erreurs silencieuses
-  ).then(function() {
-    // Supprimer tous les éléments visuels injectés par html5-qrcode
-    setTimeout(function() {
-      var qr = document.getElementById('qr-reader');
-      if (!qr) return;
-      // Masquer tous les divs sauf la vidéo
-      Array.from(qr.querySelectorAll('div, img, canvas, button')).forEach(function(el) {
-        if (el.tagName !== 'VIDEO') {
-          el.style.cssText = 'display:none!important;border:none!important;box-shadow:none!important;';
-        }
-      });
-      // S'assurer que la vidéo est bien en plein écran
-      var video = qr.querySelector('video');
-      if (video) {
-        video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;';
-      }
-    }, 500);
-  }).catch(function(err) {
-    console.error('html5-qrcode error:', err);
-  });
-}
-
-// ═══════════════════════════════════════
-// DÉMARRAGE DU SCANNER (choix automatique)
-// ═══════════════════════════════════════
-function startScanner() {
-  scanLocked = false;
-  isScanning = false;
-  showScreen('screen-scan');
-
-  // Nettoyer le div au cas où html5-qrcode y a injecté du contenu
-  var qrDiv = document.getElementById('qr-reader');
-  qrDiv.innerHTML = '';
-
-  if (typeof BarcodeDetector !== 'undefined') {
-    BarcodeDetector.getSupportedFormats().then(function(formats) {
-      if (formats.indexOf('ean_13') !== -1 || formats.indexOf('code_128') !== -1) {
-        startNativeScanner();
-      } else {
-        startHtml5Scanner();
-      }
-    }).catch(function() { startHtml5Scanner(); });
-  } else {
-    startHtml5Scanner();
-  }
-}
-
-// ═══════════════════════════════════════
-// ARRÊT DU SCANNER
-// ═══════════════════════════════════════
-function stopScanner() {
-  isScanning = false;
-
-  // Stopper BarcodeDetector
-  if (nativeRafId) { clearTimeout(nativeRafId); nativeRafId = null; }
-  if (videoStream) {
-    videoStream.getTracks().forEach(function(t){ t.stop(); });
-    videoStream = null;
-  }
-  var vn = document.getElementById('video-native');
-  if (vn) { vn.srcObject = null; vn.remove(); }
-
-  // Stopper html5-qrcode
-  if (html5Scanner) {
-    html5Scanner.stop().catch(function(){});
-    html5Scanner = null;
-  }
-
-  // Réinitialiser torche
-  torchOn = false;
-  var btn = document.getElementById('btn-torch');
-  btn.classList.remove('on');
-  btn.style.display = 'none';
-}
-
-// ═══════════════════════════════════════
-// TORCHE
-// ═══════════════════════════════════════
-function toggleTorch() {
-  if (!videoStream) return;
-  var track = videoStream.getVideoTracks()[0];
-  if (!track) return;
-  torchOn = !torchOn;
-  track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(function(){});
-  document.getElementById('btn-torch').classList.toggle('on', torchOn);
-}
-
-// ═══════════════════════════════════════
-// BADGE MOTEUR
-// ═══════════════════════════════════════
-function setBadge(engine) {
-  var badge = document.getElementById('engine-badge');
-  if (engine === 'native') {
-    badge.textContent = '⚡ Natif';
-    badge.className = 'scan-engine-badge badge-native';
-  } else {
-    badge.textContent = '● JS';
-    badge.className = 'scan-engine-badge badge-js';
-  }
-}
-
-// ═══════════════════════════════════════
-// SAISIE MANUELLE
-// ═══════════════════════════════════════
+// ── SAISIE MANUELLE ─────────────────────
 function searchManual() {
-  var val = document.getElementById('manual-ean').value.trim();
-  if (val.length >= 8) {
-    document.getElementById('manual-ean').value = '';
-    onEANDetected(val);
-  }
+  var val=document.getElementById('manual-ean').value.trim();
+  if(val.length>=8){ document.getElementById('manual-ean').value=''; onEANDetected(val); }
 }
-document.getElementById('manual-ean').addEventListener('keydown', function(e){ if(e.key==='Enter') searchManual(); });
+document.getElementById('manual-ean').addEventListener('keydown',function(e){if(e.key==='Enter')searchManual();});
 
-function backToScan() { startScanner(); }
+function backToScan() { showScreen('screen-scan'); }
 
-// ═══════════════════════════════════════
-// DÉMARRAGE APP
-// ═══════════════════════════════════════
+// ── DÉMARRAGE ───────────────────────────
 function startApp() {
   showScreen('screen-loading');
-  document.getElementById('loader-text').textContent = 'Chargement des données…';
-  loadData().then(function() {
-    startScanner();
-  }).catch(function() {
-    document.getElementById('loader-text').textContent = 'Erreur de connexion. Réessayez.';
-  });
+  document.getElementById('loader-text').textContent='Chargement des données…';
+  loadData().then(function(){ showScreen('screen-scan'); })
+  .catch(function(){ document.getElementById('loader-text').textContent='Erreur de connexion. Réessayez.'; });
 }
 
-if (sessionStorage.getItem(SESSION_KEY)) {
-  startApp();
-} else {
-  showScreen('screen-login');
-}
+if(sessionStorage.getItem(SESSION_KEY)){ startApp(); }
+else { showScreen('screen-login'); }
 </script>
 </body>
 </html>
