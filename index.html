@@ -168,10 +168,7 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
   <button class="btn-scan-again" onclick="backToScan()">📷 Scanner un autre article</button>
 </div>
 
-<!-- zxing-wasm : moteur C++ ultra-rapide via WebAssembly -->
-<script type="module">
-import { readBarcodesFromImageData } from 'https://unpkg.com/zxing-wasm@1.3.4/dist/reader/index.js';
-
+<script>
 var SHEET_ID    = '1jtxgWw8488lQWtHeYuReVv2ZlHh4MQXpTvJFZrq6egM';
 var PASSWORD    = 'magasin2024';
 var SESSION_KEY = 'scanner_auth';
@@ -192,10 +189,9 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
 }
-window.showScreen = showScreen;
 
 // ── AUTH ────────────────────────────────
-window.checkPin = function() {
+function checkPin() {
   var val = document.getElementById('pin-input').value.trim();
   if (val === PASSWORD) {
     sessionStorage.setItem(SESSION_KEY, '1');
@@ -205,14 +201,14 @@ window.checkPin = function() {
     document.getElementById('login-error').textContent = 'Mot de passe incorrect.';
     document.getElementById('pin-input').value = '';
   }
-};
-document.getElementById('pin-input').addEventListener('keydown', function(e){ if(e.key==='Enter') window.checkPin(); });
+}
+document.getElementById('pin-input').addEventListener('keydown', function(e){ if(e.key==='Enter') checkPin(); });
 
-window.logout = function() {
+function logout() {
   sessionStorage.removeItem(SESSION_KEY);
   stopScanner();
   showScreen('screen-login');
-};
+}
 
 // ── DONNÉES ─────────────────────────────
 function parseCSVLine(line) {
@@ -247,10 +243,27 @@ function loadData() {
 }
 
 // ── SCANNER WASM ─────────────────────────
+var zxingReader = null; // fonction readBarcodesFromImageData chargée dynamiquement
+
+function loadZxing() {
+  if (zxingReader) return Promise.resolve(zxingReader);
+  return import('https://unpkg.com/zxing-wasm@1.3.4/dist/reader/index.js')
+    .then(function(mod) {
+      zxingReader = mod.readBarcodesFromImageData;
+      return zxingReader;
+    });
+}
+
 async function startScanner() {
   locked = false;
   scanning = false;
   showScreen('screen-scan');
+
+  // Charger le moteur WASM en parallèle du démarrage caméra
+  loadZxing().catch(function(e) {
+    console.error('Erreur chargement zxing-wasm:', e);
+    document.getElementById('fps-badge').textContent = 'Erreur moteur de scan — utilisez la saisie manuelle';
+  });
 
   try {
     var stream = await navigator.mediaDevices.getUserMedia({
@@ -289,7 +302,8 @@ async function scanLoop() {
       var imageData = ctx.getImageData(0, 0, vw, vh);
 
       try {
-        var results = await readBarcodesFromImageData(imageData, {
+        if (!zxingReader) { rafId = requestAnimationFrame(scanLoop); return; }
+        var results = await zxingReader(imageData, {
           formats: ['EAN-13','EAN-8','Code128','UPC-A','UPC-E'],
           tryHarder: true
         });
@@ -335,7 +349,6 @@ function onEANDetected(ean) {
     showResult(ean.toString().trim(), dbArticles[ean.toString().trim()]);
   }).catch(showResultError);
 }
-window.onEANDetected = onEANDetected;
 
 function showResult(ean, article) {
   document.getElementById('result-ean-display').textContent = 'EAN : '+ean;
@@ -372,13 +385,13 @@ function showResultError() {
 }
 
 // ── SAISIE MANUELLE ──────────────────────
-window.searchManual = function() {
+function searchManual() {
   var val=document.getElementById('manual-ean').value.trim();
   if(val.length>=8){document.getElementById('manual-ean').value='';onEANDetected(val);}
-};
-document.getElementById('manual-ean').addEventListener('keydown',function(e){if(e.key==='Enter')window.searchManual();});
+}
+document.getElementById('manual-ean').addEventListener('keydown',function(e){if(e.key==='Enter')searchManual();});
 
-window.backToScan = function() { startScanner(); };
+function backToScan() { startScanner(); }
 
 // ── DÉMARRAGE ────────────────────────────
 async function startApp() {
