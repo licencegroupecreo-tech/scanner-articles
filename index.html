@@ -78,6 +78,36 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
   display:flex; flex-direction:column; gap:10px; align-items:center;
 }
 .fps-badge { font-size:11px; color:rgba(255,255,255,0.45); }
+
+/* Contrôles zoom & torche */
+.btn-zoom {
+  width:44px; height:44px;
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.2); border-radius:50%;
+  color:white; font-size:22px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.btn-zoom:active { background:rgba(255,255,255,0.3); }
+.btn-torch {
+  width:44px; height:44px;
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.2); border-radius:50%;
+  font-size:18px; cursor:pointer; display:none;
+  align-items:center; justify-content:center;
+}
+.btn-torch.on { background:rgba(255,220,50,0.35); }
+
+/* Feedback tap-to-focus */
+#focus-feedback {
+  position:fixed; width:60px; height:60px; z-index:14;
+  border:2px solid var(--accent); border-radius:50%;
+  pointer-events:none; opacity:0;
+}
+#focus-feedback.animate { animation:focusPulse 0.6s ease-out; }
+@keyframes focusPulse {
+  0% { opacity:1; transform:scale(1.4); }
+  100% { opacity:0; transform:scale(0.9); }
+}
 .manual-row { width:100%; display:flex; gap:10px; }
 .input-manual { flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:12px; padding:13px 16px; color:white; font-size:15px; outline:none; }
 .input-manual::placeholder { color:rgba(255,255,255,0.4); }
@@ -140,7 +170,18 @@ html,body { height:100%; background:var(--bg); color:var(--text); font-family:-a
       <div class="corner corner-br"></div>
       <div class="scan-line"></div>
     </div>
-    <div class="scan-hint">Centrez le code-barres dans le cadre</div>
+    <div class="scan-hint">Centrez le code-barres dans le cadre<br><span style="font-size:12px;opacity:0.7">Touchez l'écran pour refaire la mise au point</span></div>
+  </div>
+
+  <!-- Feedback visuel tap-to-focus -->
+  <div id="focus-feedback"></div>
+
+  <!-- Contrôles zoom + torche -->
+  <div id="zoom-controls" style="display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); z-index:15; flex-direction:column; gap:8px; align-items:center;">
+    <button class="btn-zoom" onclick="setZoom(0.5)">+</button>
+    <span id="zoom-level" style="font-size:11px; color:rgba(255,255,255,0.7);">1.5x</span>
+    <button class="btn-zoom" onclick="setZoom(-0.5)">−</button>
+    <button class="btn-torch" id="btn-torch" onclick="toggleTorch()" style="margin-top:12px;">🔦</button>
   </div>
 
   <div class="scan-status">
@@ -276,10 +317,31 @@ async function startScanner() {
     videoEl.srcObject = stream;
     await videoEl.play();
 
-    // Autofocus continu
+    currentStream = stream;
     var track = stream.getVideoTracks()[0];
+
+    // Autofocus + exposition continus
     if (track && track.applyConstraints) {
       track.applyConstraints({ advanced: [{ focusMode:'continuous' },{ exposureMode:'continuous' }] }).catch(()=>{});
+    }
+
+    // Zoom léger automatique (1.5x) : rapproche le code-barres sans que
+    // l'employé ait à coller son téléphone dessus — améliore la netteté
+    if (track && track.getCapabilities) {
+      var caps = track.getCapabilities();
+      if (caps && caps.zoom && caps.zoom.max >= 1.5) {
+        track.applyConstraints({ advanced: [{ zoom: 1.5 }] }).catch(()=>{});
+      }
+      // Afficher les contrôles de zoom si supporté
+      if (caps && caps.zoom) {
+        var zoomControls = document.getElementById('zoom-controls');
+        zoomControls.style.display = 'flex';
+        currentZoom = 1.5;
+      }
+      // Torche si supportée
+      if (caps && caps.torch) {
+        document.getElementById('btn-torch').style.display = 'flex';
+      }
     }
 
     scanning = true;
@@ -289,6 +351,56 @@ async function startScanner() {
   }
 }
 
+// ── ZOOM ─────────────────────────────────
+var currentStream = null;
+var currentZoom = 1;
+
+function setZoom(delta) {
+  if (!currentStream) return;
+  var track = currentStream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities) return;
+  var caps = track.getCapabilities();
+  if (!caps.zoom) return;
+  currentZoom = Math.max(caps.zoom.min || 1, Math.min(caps.zoom.max, currentZoom + delta));
+  track.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(()=>{});
+  document.getElementById('zoom-level').textContent = currentZoom.toFixed(1) + 'x';
+}
+
+// ── TAP-TO-FOCUS ─────────────────────────
+videoEl.addEventListener('click', function(e) {
+  if (!currentStream) return;
+  var track = currentStream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities) return;
+  var caps = track.getCapabilities();
+  // Relancer une passe d'autofocus au tap
+  if (caps.focusMode && caps.focusMode.indexOf('single-shot') !== -1) {
+    track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
+      .then(function() {
+        setTimeout(function() {
+          track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{});
+        }, 800);
+      }).catch(()=>{});
+  }
+  // Feedback visuel du tap
+  var fb = document.getElementById('focus-feedback');
+  fb.style.left = (e.clientX - 30) + 'px';
+  fb.style.top = (e.clientY - 30) + 'px';
+  fb.classList.remove('animate');
+  void fb.offsetWidth; // reflow pour relancer l'animation
+  fb.classList.add('animate');
+});
+
+// ── TORCHE ───────────────────────────────
+var torchOn = false;
+function toggleTorch() {
+  if (!currentStream) return;
+  var track = currentStream.getVideoTracks()[0];
+  if (!track) return;
+  torchOn = !torchOn;
+  track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(()=>{});
+  document.getElementById('btn-torch').classList.toggle('on', torchOn);
+}
+
 async function scanLoop() {
   if (!scanning) return;
 
@@ -296,10 +408,18 @@ async function scanLoop() {
     var vw = videoEl.videoWidth;
     var vh = videoEl.videoHeight;
     if (vw > 0 && vh > 0) {
-      canvasEl.width  = vw;
-      canvasEl.height = vh;
-      ctx.drawImage(videoEl, 0, 0, vw, vh);
-      var imageData = ctx.getImageData(0, 0, vw, vh);
+      // ── OPTIMISATION : n'analyser que la zone centrale (cadre de visée) ──
+      // Bande centrale : 70% de la largeur × 30% de la hauteur
+      // = ~5x moins de pixels à analyser qu'une image complète
+      var cropW = Math.floor(vw * 0.70);
+      var cropH = Math.floor(vh * 0.30);
+      var cropX = Math.floor((vw - cropW) / 2);
+      var cropY = Math.floor((vh - cropH) / 2);
+
+      canvasEl.width  = cropW;
+      canvasEl.height = cropH;
+      ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      var imageData = ctx.getImageData(0, 0, cropW, cropH);
 
       try {
         if (!zxingReader) { rafId = requestAnimationFrame(scanLoop); return; }
